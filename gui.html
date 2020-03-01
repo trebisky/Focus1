@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <title>BeagleBone Black Motor GUI</title>
+ 
+    <!-- jQuery and jQuery Mobile -->
+    <!--
+    <link rel="stylesheet" href="http://code.jquery.com/mobile/1.3.1/jquery.mobile-1.3.1.min.css" />
+    <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+    <script src="http://code.jquery.com/mobile/1.3.1/jquery.mobile-1.3.1.min.js"></script>
+    -->
+
+    <link rel="stylesheet" href="http://code.jquery.com/mobile/1.3.2/jquery.mobile-1.3.2.min.css" />
+    <script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
+    <script src="http://code.jquery.com/mobile/1.3.2/jquery.mobile-1.3.2.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+
+    <!-- Code for socket.io -->
+
+    <script>
+    var count = 0;
+    var socket = io.connect();
+
+    socket.on ( 'rate', function (val) {
+	$('label#rateshow').text('Rate is set to: ' + val + " Hz");
+    });
+    socket.on ( 'pos', function (val) {
+	$('label#posshow').text( 'Position: ' + val );
+    });
+
+    socket.on ( 'bot', function (val) {
+	$('label#botshow').text(val);
+    });
+    socket.on ( 'top', function (val) {
+	$('label#topshow').text(val);
+    });
+
+    socket.on ( 'limit', function (val) {
+	if ( val == "true" ) {
+	    $('#status1').css('background-color','yellow');
+	    $('#limit').text('limit');
+	} else {
+	    $('#status1').css('background-color','blue');
+	    // <label id="limit"> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; </label>
+	    // $('#limit').text('&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;');
+	    $('#limit').text('     ');
+	}
+    });
+
+    // Here is a function we want to have called
+    // every second or so.
+    function ticker () {
+    	count++;
+	// $('#count').text(count);
+	// socket.emit ( 'getStatus' );
+	socket.emit ( 'getPos' );
+	socket.emit ( 'gettop' );
+	socket.emit ( 'getbot' );
+    }
+
+    // Here is the document ready handler
+    $(function() {
+	// $('#count').text(count);
+	setInterval ( ticker, 1000 );
+
+	// trigger first GUI update
+	socket.emit ( 'getRate' );
+
+	// not really needed since we ask for values immediately
+	$('#status1').css('background-color','blue');
+
+	// get status for first update
+	socket.emit ( 'getLimit' );
+    });
+
+    function motorRun ( dir ) {
+	    socket.emit('run', dir);
+    }
+
+    function motorHalt() {
+	    socket.emit('halt');
+    }
+
+    function motorStow() {
+	    socket.emit('stow');
+    }
+
+    function doJog ( val ) {
+        socket.emit('jog', val);
+    }
+
+    function doJogover ( val ) {
+        socket.emit('over', val);
+    }
+
+    function setRate( rate ) {
+        socket.emit('setRate', rate);
+	socket.emit ( 'getRate' );
+    }
+
+    function xsetRate() {
+    	var rate = $('input#rateval').val();
+	setRate ( rate );
+    }
+
+    function focusx() {
+	    socket.emit('focus');
+	    console.log ("focus" );
+    }
+
+    function shutter() {
+	    socket.emit('shutter');
+	    console.log ("shutter" );
+    }
+
+    function doMove () {
+    	var target = $('input#moveval').val();
+	socket.emit ( 'move', target );
+    }
+
+    function doZero () {
+	socket.emit ( 'setzero' );
+    }
+
+    // Here when any key is up in our num entry field
+    function numtext ( event ) {
+	//console.log ("numtext event " + event)
+	//var key = event.keyCode
+	//console.log ("numtext " + key)
+	if ( event.keyCode == 13 ) {
+	    var val = $('input#setnum').val();
+	    socket.emit ( "setstep", val );
+	    $('label#numshow').text( val );
+	}
+    }
+
+    </script>
+</head>
+
+<body>
+<div data-role="page" id="page1">
+	<div data-theme="a" data-role="header">
+	    <h3> BeagleBone Black Motor controller </h3>
+	</div>
+
+        <table><tr>
+	    <td>
+        <label id="rateshow"> Rate is unknown </label>
+	    <td>
+	<input type="text" id="rateval", value="0" />
+	    <td>
+        <input type="button" value="Set Rate" onclick="xsetRate();" />
+	</tr></table>
+
+        <table><tr>
+		<td>
+            <input type="button" value="Run -" onclick="motorRun(0);"/>
+		<td>
+            <input type="button" value="Run +" onclick="motorRun(1);"/>
+		<td>
+            <input type="button" value="Halt" onclick="motorHalt();"/>
+		<td id="status1">
+		    <label id="limit">     </label>
+		<td>
+	    <input type="button" value="Stow" onclick="socket.emit('stow');" />
+	</tr> </table>
+        <table><tr>
+	    <td> <input type="button" value="10 Hz" onclick="setRate(10);"/>
+	    <td> <input type="button" value="20 Hz" onclick="setRate(20);"/>
+	    <td> <input type="button" value="50 Hz" onclick="setRate(50);"/>
+	    <td> <input type="button" value="100 Hz" onclick="setRate(100);"/>
+	    <td> <input type="button" value="200 Hz" onclick="setRate(200);"/>
+	    <td> <input type="button" value="400 Hz" onclick="setRate(400);"/>
+	    <td> <input type="button" value="10000 Hz" onclick="setRate(10000);"/>
+		<!-- 800 Hz fails -->
+	</tr> </table>
+
+        <table><tr>
+	    <td> Jog:
+	    <td> <input type="button" value="- 50" onclick="doJog(-50);"/>
+	    <td> <input type="button" value="- 10" onclick="doJog(-10);"/>
+	    <td> <input type="button" value="- 5" onclick="doJog(-5);"/>
+	    <td> <input type="button" value="- 1" onclick="doJog(-1);"/>
+	    <td> <input type="button" value="+ 1" onclick="doJog(1);"/>
+	    <td> <input type="button" value="+ 5" onclick="doJog(5);"/>
+	    <td> <input type="button" value="+ 10" onclick="doJog(10);"/>
+	    <td> <input type="button" value="+ 50" onclick="doJog(50);"/>
+	</tr> </table>
+        <table><tr>
+	    <td> <label id="posshow"> position unknown </label>
+	    <td> <input type="button" value="set Zero" onclick="doZero();"/>
+	    <td> <input type="text" id="moveval", value="0" \>
+	    <td> <input type="button" value="Move" onclick="doMove();"/>
+	</tr> </table>
+        <table><tr>
+	    <td> <label id="botshow"> --- </label>
+	    <td> <input type="button" value="Set bottom" onclick="socket.emit( 'botexp' );"/>
+	    <td> <label id="topshow"> --- </label>
+	    <td> <input type="button" value="Set top" onclick="socket.emit( 'topexp' );"/>
+	    <td> <label id="numshow"> --- </label>
+	    <td> <input type="text" id="setnum", value="" onkeyup="numtext(event)" />
+	    <td> <input type="button" value="Go" onclick="socket.emit ( 'goexp' );" />
+	</tr> </table>
+        <table><tr>
+	    <td> <input type="button" value="Override - 100" onclick="doJogover(-100);"/>
+	    <td> <input type="button" value="Override + 100" onclick="doJogover(100);"/>
+	</tr></table>
+        <table><tr>
+	    <td> <input type="button" value="Focus" onclick="focusx();"/>
+	    <td> <input type="button" value="Shutter" onclick="shutter();"/>
+	</tr></table>
+</div>
+</body>
+</html>
