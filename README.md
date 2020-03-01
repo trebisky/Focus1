@@ -2,6 +2,11 @@
 
 This is software to run a stepper motor based camera focus rail.
 
+The purpose of the rail is to automate the taking of a series of
+images that will then be used in "focus stacking".
+Typically I am doing photomacrography with fields of view
+from 3mm to 30mm on a full frame sensor.
+
 This work was done in 2014 to 2016, but was only placed on Github
 on 2020.  I am finding it a challenge to find all the pieces after
 letting this sit for 5 years.
