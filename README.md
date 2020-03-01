@@ -19,6 +19,8 @@ debian.
 
 Some fine day I intend to run all of this under my RTOS Kyu on
 the BBB -- the interesting part then will be the GUI.
+I call this Focus1 in anticipation of Focus2 being the Kyu
+based project.
 
 The front end is a web based GUI implemented using node.js
 The machine that handles the user interface need only have a
