@@ -32,5 +32,6 @@ eventually
 
 ====================
 
-gui.js - is the top level gui in the final application
-pru_eblink - is a directory holding the PRU code and test fixtures
+- gui.js - is the top level gui in the final application
+- pru_eblink - is a directory holding the PRU code and test fixtures
+- pasm - the PRU assembler
