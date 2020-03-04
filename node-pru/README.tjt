@@ -1,0 +1,10 @@
+To build this:
+
+su
+node-gyp configure build
+  (node-gyp only runs for root)
+
+To install:
+
+npm install -g --unsafe-perm
+  (takes a long time)
