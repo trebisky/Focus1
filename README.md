@@ -29,3 +29,8 @@ browser and no special software need be installed.
 I use the PRU to generate the pulses to move the stepper motor.
 That code is written in assembly and will find its way here
 eventually
+
+====================
+
+gui.js - is the top level gui in the final application
+pru_eblink - is a directory holding the PRU code and test fixtures
