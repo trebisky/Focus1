@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# Must be run as root
+
+#export NODE_PATH=/usr/local/lib/node_modules/
+export NODE_PATH=/usr/lib/node_modules/
+export NODE_MODULES_CONTEXTS=1
+
+date
+cd /home/tom/gui
+/usr/bin/node gui.js &

@@ -1,0 +1,6 @@
+#!/bin/sh
+sleep 16
+#/usr/bin/ntpdate -b -s pool.ntp.org
+/usr/bin/ntpdate-sync
+
+/home/tom/focus_start >>/home/tom/focus.log 2>&1
