@@ -30,11 +30,24 @@
 	$('label#posshow').text( 'Position: ' + val );
     });
 
+    socket.on ( 'status', function (val) {
+	$('label#statshow').text( val );
+    });
+    socket.on ( 'progress', function (val) {
+	$('label#progshow').text( val );
+    });
+
     socket.on ( 'bot', function (val) {
 	$('label#botshow').text(val);
     });
     socket.on ( 'top', function (val) {
 	$('label#topshow').text(val);
+    });
+    socket.on ( 'step', function (val) {
+	$('label#stepshow').text(val);
+    });
+    socket.on ( 'num', function (val) {
+	$('label#numshow').text(val);
     });
 
     socket.on ( 'limit', function (val) {
@@ -58,6 +71,10 @@
 	socket.emit ( 'getPos' );
 	socket.emit ( 'gettop' );
 	socket.emit ( 'getbot' );
+	socket.emit ( 'getstep' );
+	socket.emit ( 'getnum' );
+	socket.emit ( 'getStat' );
+	socket.emit ( 'getProg' );
     }
 
     // Here is the document ready handler
@@ -124,15 +141,15 @@
 	socket.emit ( 'setzero' );
     }
 
-    // Here when any key is up in our num entry field
+    // Here when any key is up in our step entry field
     function numtext ( event ) {
-	//console.log ("numtext event " + event)
+	//console.log ("step text event " + event)
 	//var key = event.keyCode
-	//console.log ("numtext " + key)
+	//console.log ("step text " + key)
 	if ( event.keyCode == 13 ) {
 	    var val = $('input#setnum').val();
 	    socket.emit ( "setstep", val );
-	    $('label#numshow').text( val );
+	    //$('label#stepshow').text( val );
 	}
     }
 
@@ -173,6 +190,7 @@
 	    <td> <input type="button" value="100 Hz" onclick="setRate(100);"/>
 	    <td> <input type="button" value="200 Hz" onclick="setRate(200);"/>
 	    <td> <input type="button" value="400 Hz" onclick="setRate(400);"/>
+	    <td> <input type="button" value="500 Hz" onclick="setRate(500);"/>
 	    <td> <input type="button" value="10000 Hz" onclick="setRate(10000);"/>
 		<!-- 800 Hz fails -->
 	</tr> </table>
@@ -189,6 +207,15 @@
 	    <td> <input type="button" value="+ 50" onclick="doJog(50);"/>
 	</tr> </table>
         <table><tr>
+	    <td> Jog:
+	    <td> <input type="button" value="- 400" onclick="doJog(-400);"/>
+	    <td> <input type="button" value="- 200" onclick="doJog(-200);"/>
+	    <td> <input type="button" value="- 100" onclick="doJog(-100);"/>
+	    <td> <input type="button" value="+ 100" onclick="doJog(100);"/>
+	    <td> <input type="button" value="+ 200" onclick="doJog(200);"/>
+	    <td> <input type="button" value="+ 400" onclick="doJog(400);"/>
+	</tr> </table>
+        <table><tr>
 	    <td> <label id="posshow"> position unknown </label>
 	    <td> <input type="button" value="set Zero" onclick="doZero();"/>
 	    <td> <input type="text" id="moveval", value="0" \>
@@ -199,9 +226,16 @@
 	    <td> <input type="button" value="Set bottom" onclick="socket.emit( 'botexp' );"/>
 	    <td> <label id="topshow"> --- </label>
 	    <td> <input type="button" value="Set top" onclick="socket.emit( 'topexp' );"/>
-	    <td> <label id="numshow"> --- </label>
+	    <td> Step by: <label id="stepshow"> --- </label>
 	    <td> <input type="text" id="setnum", value="" onkeyup="numtext(event)" />
+	    <td> # of exposures: <label id="numshow"> --- </label>
 	    <td> <input type="button" value="Go" onclick="socket.emit ( 'goexp' );" />
+	    <td> <input type="button" value="Abort" onclick="socket.emit ( 'doabort' );" />
+	</tr> </table>
+        <table><tr>
+	    <td> Status:
+	    <td> <label id="statshow"> Status is unknown </label>
+	    <td> <label id="progshow"> Progress is unknown </label>
 	</tr> </table>
         <table><tr>
 	    <td> <input type="button" value="Override - 100" onclick="doJogover(-100);"/>

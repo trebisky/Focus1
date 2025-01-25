@@ -54,11 +54,17 @@ var io_debug = 2;
 
 var motor_rate;		// set in new_rate();
 
+// Stuff added 1-25-2025
+var abort_flag = false;
+var stat = "idle";
+var progress = "---";
+
 app.listen(my_port);
 
-io.set('log level', io_debug);
+// io.set('log level', io_debug);
 // io.set('browser client minification', true);  // send minified client
-io.set('browser client etag', true);  // apply etag caching logic based on version number
+// apply etag caching logic based on version number
+//io.set('browser client etag', true);
 
 console.log('Server running on: http://' + getIPAddress() + ':' + my_port);
 
@@ -124,8 +130,8 @@ var ulim = center + limit;
 
 var botexp = center;
 var topexp = center;
-var num_steps = 1;
 var exp_step = 10;
+var num_steps = 1;
 
 pru.init ();
 pru.load ( "pru_eblink.bin" );
@@ -233,48 +239,99 @@ function trip_shutter () {
 	setTimeout ( shutter_end, 500 );
 }
 
-// These two functions handle a motion loop
-// in node.js style
+// These functions handle a motion loop in node.js style
+// These timeouts are in milliseconds
 
-var move_delay = 2000;		// settling time
-var mirror_delay = 5000;	// settling time
-var shutter_delay = 2000;	// settling time
+// Note the 30 second delay for the mirrorless.
+// The longer the better, but we must wait at least
+// 22 seconds currently since we transfer the image
+// via Wifi and it takes 22 seconds.
+// now with my new Wifi, it takes only 10 seconds.
+// But with USB, I can just do a transfer in 5 seconds.
 
+var mirrorless = true;
+if ( mirrorless ) {
+    var move_delayX = 30 * 1000;	// settling time
+    var move_delay = 6 * 1000;	// settling time
+    var shutter_delay = 1000;	// settling time
+} else {
+    var move_delay = 2000;	// settling time
+    var mirror_delay = 5000;	// settling time
+    var shutter_delay = 2000;	// settling time
+}
+
+var total_count;
 var move_count;
 var next_pos;
 var inc_pos;
 
+// A series will start with a call to next_move()
+// the variable botexp will have the bottom position
+//  which is where we start.
+// the variable move_count will have the number
+// left to go, and gets decremented
+// in do_shutter.  It stops on zero
+
+function update_prog () {
+    var index = total_count + 1 - move_count;
+    progress = "  On " + index + " of " + total_count;
+}
+
+// move the stage, wait for motion to finish
 function next_move () {
     console.log ( "next move " + next_pos );
+    update_prog ();
     move_motor ( next_pos );
     pru.wait ( move_done )
 }
 
-// move is done -- no delay really needed
-// here if we are raising mirror w/ lockup.
+// motion is done
+// For the mirrorless, the big delay is here.
+// for the DSLR we raise the mirror and should
+// have the big delay after that.
 function move_done () {
     console.log ( "move done " + move_count );
     pru.clearInterrupt ();
-    setTimeout ( move_mirror, move_delay );
+    if ( abort_flag ) {
+	console.log ( "Sequence abort done" );
+	abort_flag = false;
+	return ;
+    }
+    if ( mirrorless ) {
+	setTimeout ( do_shutter, move_delay );
+    } else {
+	setTimeout ( raise_mirror, move_delay );
+    }
 }
 
-// raise mirror
-function move_mirror () {
-    console.log ( "move mirror " + move_count );
+// only for DSLR, raise mirror.
+// follow this by big delay.
+function raise_mirror () {
+    console.log ( "raise mirror " + move_count );
     trip_shutter ();
-    setTimeout ( move_shutter, mirror_delay );
+    setTimeout ( do_shutter, mirror_delay );
 }
 
 // capture image
-function move_shutter () {
-    console.log ( "move shutter " + move_count );
+function do_shutter () {
+    console.log ( "do shutter " + move_count );
     trip_shutter ();
 
     --move_count;
     if ( move_count > 0 ) {
 	next_pos += inc_pos;
 	setTimeout ( next_move, shutter_delay );
+    } else {
+	stat = "done";
     }
+}
+
+// Update number of exposures
+function update_num() {
+      var n = Math.floor ( (topexp - botexp) / exp_step ) + 1;
+      if ( exp_step * (n-1) >= (topexp - botexp ) )
+	    n = n - 1;
+      return n;
 }
 
 // ----------------------------------------------
@@ -309,6 +366,13 @@ io.sockets.on('connection', function (socket) {
       trip_shutter ();
   });
 
+  socket.on('getStat', function () {
+	  socket.emit ( 'status', stat );
+  });
+  socket.on('getProg', function () {
+	  socket.emit ( 'progress', progress );
+  });
+
   socket.on('getPos', function () {
 	  var cur_pos = pru.getDataRAMInt ( 6 );
 	  socket.emit ( 'pos', cur_pos );
@@ -330,31 +394,44 @@ io.sockets.on('connection', function (socket) {
   });
   socket.on('setstep', function ( val ) {
       exp_step = +val;
+      console.log ( "step set to " + exp_step );
+      num_steps = update_num ();
   });
   socket.on('botexp', function () {
       botexp = pru.getDataRAMInt ( 6 );
+      num_steps = update_num ();
   });
   socket.on('topexp', function () {
       topexp = pru.getDataRAMInt ( 6 );
+      num_steps = update_num ();
   });
 
   // User gives counts per step
   socket.on('goexp', function () {
       console.log ( "GO step is " + exp_step );
-      // Javascript idiom to convert string to int
-      var num = Math.floor ( (topexp - botexp) / exp_step ) + 1;
-      if ( exp_step * (num-1) >= (topexp - botexp ) )
-	    num = num - 1;
 
-      move_count = num + 1;
+      num_steps = update_num ();
+      // var num = Math.floor ( (topexp - botexp) / exp_step ) + 1;
+      // if ( exp_step * (num-1) >= (topexp - botexp ) )
+      //     num = num - 1;
+
+      total_count = num_steps + 1;
+      move_count = total_count
       next_pos = botexp;
       inc_pos = exp_step;
+      abort_flag = false;
 
       console.log ( "GO count = " + move_count );
+      stat = "busy";
       next_move ();
   });
 
-  // User gives number of steps (no what we really want).
+  socket.on('doabort', function () {
+      console.log ( "Sequence aborted" );
+      abort_flag = true;
+  });
+
+  // User gives number of steps (not what we really want).
   socket.on('goexpX', function () {
       console.log ( "GO " + num_steps );
       // Javascript idiom to convert string to int
