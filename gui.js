@@ -295,6 +295,7 @@ function move_done () {
     if ( abort_flag ) {
 	console.log ( "Sequence abort done" );
 	abort_flag = false;
+        stat = "done";
 	return ;
     }
     if ( mirrorless ) {
@@ -429,6 +430,7 @@ io.sockets.on('connection', function (socket) {
   socket.on('doabort', function () {
       console.log ( "Sequence aborted" );
       abort_flag = true;
+      stat = "aborting";
   });
 
   // User gives number of steps (not what we really want).
